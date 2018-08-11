@@ -1,8 +1,0 @@
-
-***** New Search - movie-this - Frozen *****
-
-Error: null
-
-***** New Search - my-tweets - undefined *****
-
-Error: [object Object]
