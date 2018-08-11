@@ -1,52 +1,152 @@
 require("dotenv").config();
+var tKeys = require('./keys.js');
+var twitterPackage = require('twitter');
+var spotifyAPI = require('node-spotify-api');
+var sKeys = require('./keys.js');
+var request = require('request');
+var fs = require('fs');
+var oKeys = require('./keys.js');
 
-//???Add the code required to import the keys.js file and store it in a variable.?????
 
-var spotify = new Spotify(keys.spotify);
-var client = new Twitter(keys.twitter);
+var userCommand = process.argv[2];
+var userInput = process.argv[3];
 
-var command = process.argv[2];
+switch (userCommand) {
+    case 'my-tweets':
+        myTweets();
+        break;
 
-// ???Make it so liri.js can take in one of the following commands:
-// * `my-tweets`
-// * `spotify-this-song`
-// * `movie-this`
-// * `do-what-it-says`
-// if else statement that takes in arguments from command line
-if(command == "movie-this"){
-    moviethis();
+    case 'spotify-this-song':
+        var songName = userInput;
+        spotifyThis(songName);
+        break;
+
+    case 'movie-this':
+        movieName = userInput;
+        movieThis(movieName);
+        break;
+
+    case 'do-what-it-says':
+        doIt();
+        break;
+
+    default:
+        console.log("Enter an approved command")
+};
+
+
+function myTweets() {
+    var client = new twitterPackage({
+        consumer_key: tKeys.twitterKeys.consumer_key,
+        consumer_secret: tKeys.twitterKeys.consumer_secret,
+        access_token_key: tKeys.twitterKeys.access_token_key,
+        access_token_secret: tKeys.twitterKeys.access_token_secret
+    });
+    var parameters = { screen_name: 'boot_hw', count: '20' };
+
+    client.get('statuses/user_timeline', parameters, function (error, tweets, response) {
+        if (!error) {
+            for (var i = 0; i < tweets.length; i++) {
+                var tweet = tweets[i].text;
+                var tweetTime = tweets[i].created_at;
+                console.log('boot_hw tweeted "' + tweet + '" at ' + tweetTime);
+            }
+        } else {
+            console.log("Error: " + error);
+        }
+    });
+}
+
+function spotifyThis(songName) {
+    var spotify = new spotifyAPI({
+        id: sKeys.spotifyKeys.client_id,
+        secret: sKeys.spotifyKeys.client_secret
+    });
+    if (songName == null) {
+        songName = 'The Sign Ace of Base';
+    }
+    var parameters = songName;
+    spotify.search({ type: 'track', query: parameters }, function (error, data) {
+        if (!error && songName != null) {
+            for (var i = 0; i < data.tracks.items.length; i++) {
+                var artists = data.tracks.items[i].artists[0].name;
+                var name = data.tracks.items[i].name;
+                var preview = data.tracks.items[i].preview_url;
+                var album = data.tracks.items[i].album.name;
+                console.log('=================================');
+                console.log('Artists: ' + artists);
+                console.log('Song Name: ' + name);
+                console.log('Preview URL: ' + preview);
+                console.log('Album Name: ' + album);
+                console.log('=================================');
+            }
+        } else {
+            console.log("Error: " + error);
+        }
+    })
+}
+
+function movieThis(movieName) {
+    var omdbKey = oKeys.omdbKey.api_key
+    if (movieName == null) {
+        movieName = 'Mr. Nobody';
+    }
+    request("http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=" + omdbKey, function (error, response, body) {
+        if (!error && response.statusCode === 200) {
+            console.log('===========================================');
+            console.log("Title: " + JSON.parse(body).Title);
+            console.log("The move came out in " + JSON.parse(body).Year);
+            console.log("The movie's IMDB rating is: " + JSON.parse(body).imdbRating);
+            console.log("The movie's Rotten Tomatoes rating is: " + JSON.parse(body).Ratings[1].Value);
+            console.log("County the movie was produced in: " + JSON.parse(body).Country);
+            console.log("Movie Language: " + JSON.parse(body).Language);
+            console.log("Plot Synopsis: " + JSON.parse(body).Plot);
+            console.log("Actors: " + JSON.parse(body).Actors);
+            console.log('===========================================');
+        } else {
+            console.log("Error: " + error);
+        }
+        
+        if(movieName === "Mr. Nobody"){
+            console.log("If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
+            console.log("It's on Netflix!");
+          }
+    });
 }
 
 
-function mytweets() {
-   //This will show your last 20 tweets and when they were created at in your terminal/bash window.
-}
+function doIt() {
 
-function spotifythissong(song_name) {
-    // This will show the following information about the song in your terminal/bash window
-    // *Artist(s)
-    // *The song's name
-    // *A preview link of the song from Spotify
-    // *The album that the song is from    
-    // If no song is provided then your program will default to "The Sign" by Ace of Base.
-}
+    fs.readFile('random.txt', 'utf8', function (error, data) {
+        if (error) {
+            console.log("Error: " + error);
+        } else {
+            var stuffToDo = data.split(",");
+            userCommand = stuffToDo[0];
+            userInput = stuffToDo[1];
 
-function moviethis(movie_name){
-    // * Title of the movie.
-    // * Year the movie came out.
-    // * IMDB Rating of the movie.
-    // * Rotten Tomatoes Rating of the movie.
-    // * Country where the movie was produced.
-    // * Language of the movie.
-    // * Plot of the movie.
-    // * Actors in the movie.
-    // If the user doesn't type a movie in, the program will output data for the movie 'Mr. Nobody.'
-    // If you haven't watched "Mr. Nobody," then you should: http://www.imdb.com/title/tt0485947/
-    // *It's on Netflix!
-}
+            switch (userCommand) {
+                case 'my-tweets':
+                    myTweets();
+                    break;
 
-function dowhatitsays(){
-    // Using the fs Node package, LIRI will take the text inside of random.txt and then use it to call one of LIRI's commands.
-    // It should run spotify-this-song for "I Want it That Way," as follows the text in random.txt.
-    // Feel free to change the text in that document to test out the feature for other commands.
+                case 'spotify-this-song':
+                    var songName = userInput;
+                    spotifyThis(songName);
+                    break;
+
+                case 'movie-this':
+                    movieName = userInput;
+                    movieThis(movieName);
+                    break;
+
+                case 'do-what-it-says':
+                    doIt();
+                    break;
+
+                default:
+                    console.log("Enter an approved command")
+            }
+        }
+    })
 }
